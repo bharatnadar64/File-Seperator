@@ -15,11 +15,13 @@ class Test {
         minFile = extremeSize(directory, "min");
         maxFile = extremeSize(directory, "max");
 
-        System.out.println(workingDir);
+        // System.out.println(workingDir);
         System.out.println(ext);
-        System.out.println(dir);
-        System.out.println(minFile);
-        System.out.println(maxFile);
+        // System.out.println(dir);
+        // System.out.println(minFile);
+        // System.out.println(maxFile);
+        System.out.println(ext.keySet());
+        makeDir(ext.keySet(), dir);
     }
 
     static boolean ignore(File f) {
@@ -92,6 +94,25 @@ class Test {
         exFile.put(name, sizeInMb);
 
         return exFile;
+    }
+
+    static void makeDir(Set<String> exts, Set<String> dirs) {
+        String workDir = System.getProperty("user.dir");
+        int i = 0;
+        String res = "result";
+        while (dirs.contains(res)) {
+            res += i++;
+        }
+
+        File result = new File(workDir + File.separator + res);
+        result.mkdir();
+
+        for (String x : exts) {
+            if (!dirs.contains(x)) {
+                File temp = new File(workDir + File.separator + res + File.separator + x);
+                temp.mkdir();
+            }
+        }
     }
 
 }
