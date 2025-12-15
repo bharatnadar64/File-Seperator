@@ -21,7 +21,7 @@ class Test {
         // System.out.println(minFile);
         // System.out.println(maxFile);
         System.out.println(ext.keySet());
-        makeDir(ext.keySet(), dir);
+        String resDir =  makeDir(ext.keySet(), dir);
     }
 
     static boolean ignore(File f) {
@@ -96,12 +96,12 @@ class Test {
         return exFile;
     }
 
-    static void makeDir(Set<String> exts, Set<String> dirs) {
+    static String makeDir(Set<String> exts, Set<String> dirs) {
         String workDir = System.getProperty("user.dir");
         int i = 0;
         String res = "result";
         while (dirs.contains(res)) {
-            res += i++;
+            res = "result" + i++;
         }
 
         File result = new File(workDir + File.separator + res);
@@ -113,6 +113,7 @@ class Test {
                 temp.mkdir();
             }
         }
+        return res;
     }
 
 }
