@@ -59,7 +59,7 @@ class Test {
     }
 
     static boolean ignore(File f) {
-        HashSet<String> ignoreList = new HashSet<>(Arrays.asList("Test.java", "Test.class", ".gitignore",".git"));
+        HashSet<String> ignoreList = new HashSet<>(Arrays.asList("Test.java", "Test.class",".git"));
         return ignoreList.contains(f.getName());
     }
 
@@ -118,8 +118,10 @@ class Test {
 
         if (dirs != null) {
             for (File d : dirs) {
-                if (!dirNames.contains(d.getName())) {
+                if(!ignore(d)){
+                    if (!dirNames.contains(d.getName())) {
                     dirNames.add(d.getName());
+                }
                 }
             }
             return dirNames;
