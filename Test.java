@@ -56,6 +56,7 @@ class Test {
                     case 4:
                         if (doneStrict) {
                             revert(workingDir, originalState);
+                            doneStrict = false;
                         } else {
                             System.out.println("Apply Strict mode first");
                         }
