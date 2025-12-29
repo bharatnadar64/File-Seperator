@@ -1,30 +1,35 @@
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalTime;
 import java.util.*;
 
 class Test {
+    static HashSet<String> ignoreList = new HashSet<>(Arrays.asList("Test.java", "Test.class", ".git"));
+
     public static void main(String[] args) {
         boolean doneStrict = false;
         Scanner inp = new Scanner(System.in);
         int choice;
         Map<String, Integer> ext;
-        Map<String, Integer> originalState;
+        Map<String, ArrayList<String>> originalState;
         Map<String, Double> minFile;
         Map<String, Double> maxFile;
+        String report = null;
         HashSet<String> dir;
         try {
             String workingDir = System.getProperty("user.dir");
             File directory = new File(workingDir);
-            originalState = fileSummary(directory);
+            originalState = ogState(directory);
             ext = fileSummary(directory);
             dir = dirSummary(directory);
 
             while (true) {
                 System.out.println("File Manager");
                 System.out.println(
-                        "1. Summary \n2.Manage Files(Safe Mode) \n3.Manage Files(Strict Mode) \n4.Revert Strict Mode \n5.Exit");
+                        "1. Summary \n2.Manage Files(Safe Mode) \n3.Manage Files(Strict Mode) \n4.Revert Strict Mode \n5.Generate Report(CSV) \n6.Exit");
                 System.out.print("Choice: ");
                 choice = inp.nextInt();
                 switch (choice) {
@@ -42,9 +47,11 @@ class Test {
                         String resDir = makeDir(ext.keySet(), dir, "safe");
                         moveFiles(directory, workingDir, resDir, "safe");
                         System.out.println("Files Managed at ./" + resDir);
+                        ignoreList.add(resDir);
                         break;
                     case 3:
                         if (!doneStrict) {
+                            originalState = ogState(directory);
                             makeDir(ext.keySet(), dir, "strict");
                             moveFiles(directory, workingDir, workingDir, "strict");
                             doneStrict = true;
@@ -62,6 +69,16 @@ class Test {
                         }
                         break;
                     case 5:
+                        ext = fileSummary(directory);
+                        report = makeReport(workingDir, ext);
+                        if (report != null) {
+                            System.out.println("Report Generated at ./" + report);
+                            ignoreList.add(report);
+                        } else {
+                            System.out.println("Can not generated report for Empty Directory");
+                        }
+                        break;
+                    case 6:
                         return;
                     default:
                         System.out.println("Invalid Choice!");
@@ -75,7 +92,6 @@ class Test {
     }
 
     static boolean ignore(File f) {
-        HashSet<String> ignoreList = new HashSet<>(Arrays.asList("Test.java", "Test.class", ".git"));
         return ignoreList.contains(f.getName());
     }
 
@@ -223,27 +239,91 @@ class Test {
         return ".";
     }
 
-    static void revert(String workingDir, Map<String, Integer> originalState) {
+    static HashMap<String, ArrayList<String>> ogState(File dir) {
+        HashMap<String, ArrayList<String>> og = new HashMap<>();
+        File[] files = dir.listFiles(File::isFile);
+        if (files != null) {
+            for (File f : files) {
+                if (!ignore(f)) {
+                    String check = extName(f.getName());
+                    if (og.containsKey(check)) {
+                        og.get(check).add(f.getName());
+                    } else {
+                        og.put(check, new ArrayList<>(Arrays.asList(f.getName())));
+                    }
+                }
+            }
+            return og;
+        }
+        return null;
+    }
+
+    static String makeReport(String filePath, Map<String, Integer> report) throws IOException {
+
+        File workingPath = new File(filePath);
+
+        ArrayList<File> dir = new ArrayList<>(Arrays.asList(workingPath.listFiles(File::isFile)));
+
+        if (!dir.isEmpty()) {
+            int i = 0;
+            String res = "directoryReport";
+
+            while (containsFileName(dir, res + ".csv") && i < 100) {
+                res = "directoryReport" + i++;
+            }
+
+            if (containsFileName(dir, res + ".csv")) {
+                return null;
+            }
+
+            res += ".csv";
+
+            try (FileWriter writer = new FileWriter(res)) {
+                writer.append("Time").append(",").append(LocalTime.now().withNano(0).toString()).append("\n");
+                for (Map.Entry<String, Integer> entry : report.entrySet()) {
+                    writer.append(entry.getKey())
+                            .append(",")
+                            .append(String.valueOf(entry.getValue()))
+                            .append("\n");
+                }
+                return res;
+            }
+
+        }
+
+        return null;
+    }
+
+    private static boolean containsFileName(List<File> files, String name) {
+        for (File f : files) {
+            if (f.getName().equals(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static void revert(String workingDir, Map<String, ArrayList<String>> originalState) {
         for (String ext : originalState.keySet()) {
             if (!ext.equals("Total files")) {
                 String source = workingDir + File.separator + ext;
                 File sourceDir = new File(source);
-                File[] moveFromFiles = sourceDir.listFiles();
+                ArrayList<String> moveFromFiles = originalState.get(ext);
                 if (moveFromFiles != null) {
-                    for (File moveFrom : moveFromFiles) {
-                        String sourceFile = workingDir + File.separator + ext + File.separator + moveFrom.getName();
-                        String targetFile = workingDir + File.separator + moveFrom.getName();
+                    for (String moveFrom : moveFromFiles) {
+                        String sourceFile = workingDir + File.separator + ext + File.separator + moveFrom;
+                        String targetFile = workingDir + File.separator + moveFrom;
                         try {
                             Files.move(Paths.get(sourceFile), Paths.get(targetFile));
                         } catch (IOException e) {
-                            e.printStackTrace();
+                            System.err.println(e.getMessage());
                         }
                     }
                 }
                 try {
                     Files.delete(sourceDir.toPath());
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    System.err.println(e.getMessage());
                 }
 
             }
